@@ -3,7 +3,7 @@ package config
 import (
 	"log"
 
-	"github.com/babaYaga451/go-zomato/order-service/internal/env"
+	"github.com/babaYaga451/go-zomato/order-service/internal/adapter/config/env"
 	"github.com/joho/godotenv"
 )
 
