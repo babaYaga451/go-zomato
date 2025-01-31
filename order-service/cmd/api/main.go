@@ -5,15 +5,17 @@ import (
 	"time"
 
 	"github.com/babaYaga451/go-zomato/common/log"
+	"github.com/babaYaga451/go-zomato/common/uuid"
 	"github.com/babaYaga451/go-zomato/order-service/internal/adapter/config"
-	"github.com/babaYaga451/go-zomato/order-service/internal/adapter/inbound/handler/http"
-	mongodb "github.com/babaYaga451/go-zomato/order-service/internal/adapter/outbound/mongoDb"
-	"github.com/babaYaga451/go-zomato/order-service/internal/adapter/outbound/mongoDb/repository"
-	"github.com/babaYaga451/go-zomato/order-service/internal/core/service"
+	"github.com/babaYaga451/go-zomato/order-service/internal/adapter/inbound/http"
+	"github.com/babaYaga451/go-zomato/order-service/internal/adapter/inbound/http/handler"
+	"github.com/babaYaga451/go-zomato/order-service/internal/adapter/outbound/repository/mongodb"
+	"github.com/babaYaga451/go-zomato/order-service/internal/application/service"
 )
 
 func main() {
 	logger := log.NewZapLogger()
+	uuidGenerator := uuid.NewRandomUUIDGeneratory()
 	conf, err := config.New()
 	if err != nil {
 		logger.Fatalw("failed to load config", "error", err)
@@ -30,12 +32,12 @@ func main() {
 	defer client.Disconnect(ctx)
 	logger.Info("MongoDB connection established!")
 
-	orderRepository := repository.NewOrderRepository(client, dbName)
-	customerRepository := repository.NewCustomerRepository(client, dbName)
-	restaurantRepository := repository.NewRestaurantRepository(client, dbName)
+	orderRepository := mongodb.NewOrderRepository(client, dbName)
+	customerRepository := mongodb.NewCustomerRepository(client, dbName)
+	restaurantRepository := mongodb.NewRestaurantRepository(client, dbName)
 
-	orderService := service.NewOrderService(orderRepository, customerRepository, restaurantRepository, logger)
-	orderHandler := http.NewOrderCommandHandler(orderService, logger)
+	orderService := service.NewOrderService(orderRepository, customerRepository, restaurantRepository, uuidGenerator, logger)
+	orderHandler := handler.NewOrderCommandHandler(orderService, logger)
 
 	router := http.NewRouterWithConfig(orderHandler, conf.HTTP, logger)
 	mux := router.SetUpRouter()

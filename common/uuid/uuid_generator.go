@@ -1,5 +1,7 @@
 package uuid
 
 type UUIDGenerator interface {
-	Generate() string
+	GenerateOrderID() string
+	GenerateTrackingID() string
+	GenerateAddressID() string
 }
