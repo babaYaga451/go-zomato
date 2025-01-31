@@ -34,13 +34,12 @@ func mapAddress(orderAddress dto.OrderAddress) *valueobject.Address {
 
 func mapOrderItems(orderItems []dto.OrderItem) []*domain.OrderItem {
 	items := make([]*domain.OrderItem, len(orderItems))
-	for _, item := range orderItems {
-		items = append(items,
-			domain.NewOrderItem(
-				domain.NewProduct(item.ProductId),
-				item.Quantity,
-				valueObject.NewMoney(item.Price),
-				valueObject.NewMoney(item.SubTotal)))
+	for i, item := range orderItems {
+		product := domain.NewProduct(item.ProductId)
+		price := valueObject.NewMoney(item.Price)
+		subTotal := valueObject.NewMoney(item.SubTotal)
+
+		items[i] = domain.NewOrderItem(product, item.Quantity, price, subTotal)
 	}
 	return items
 }

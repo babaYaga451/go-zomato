@@ -11,7 +11,7 @@ import (
 	"github.com/babaYaga451/go-zomato/order-service/internal/domain/errors"
 )
 
-type OrderService struct {
+type OrderServiceImpl struct {
 	orderRepository      port.OrderRepository
 	customerRepository   port.CustomerRepository
 	restaurantRepository port.RestaurantRepository
@@ -23,8 +23,8 @@ func NewOrderService(orderRepository port.OrderRepository,
 	customerRepository port.CustomerRepository,
 	restaurantRepository port.RestaurantRepository,
 	uuidGenerator uuid.UUIDGenerator,
-	logger log.Logger) *OrderService {
-	return &OrderService{
+	logger log.Logger) port.OrderService {
+	return &OrderServiceImpl{
 		orderRepository:      orderRepository,
 		customerRepository:   customerRepository,
 		restaurantRepository: restaurantRepository,
@@ -33,7 +33,7 @@ func NewOrderService(orderRepository port.OrderRepository,
 	}
 }
 
-func (os *OrderService) CreateOrder(ctx context.Context, cmd *dto.CreateOrderCommand) (*dto.CreateOrderResponse, error) {
+func (os *OrderServiceImpl) CreateOrder(ctx context.Context, cmd *dto.CreateOrderCommand) (*dto.CreateOrderResponse, error) {
 	order := mapper.MapToDomainOrderEntity(cmd)
 	_, err := os.customerRepository.FindCustomer(ctx, cmd.CustomerID)
 
@@ -42,9 +42,9 @@ func (os *OrderService) CreateOrder(ctx context.Context, cmd *dto.CreateOrderCom
 		return nil, err
 	}
 
-	productIds := make([]string, len(cmd.Items))
-	for _, item := range cmd.Items {
-		productIds = append(productIds, item.ProductId)
+	productIds := make([]string, 0, len(cmd.Items))
+	for i, item := range cmd.Items {
+		productIds[i] = item.ProductId
 	}
 
 	restaurant, err := os.restaurantRepository.FindRestaurantByProducts(ctx, cmd.RestaurantID, productIds)
@@ -52,14 +52,9 @@ func (os *OrderService) CreateOrder(ctx context.Context, cmd *dto.CreateOrderCom
 		return nil, err
 	}
 
-	if !restaurant.IsActive() {
-		return nil, errors.NewOrderDomainException("Restaurant with id: " + cmd.RestaurantID + " is not active")
-	}
-
 	err = order.CreateNewOrder(
 		os.uuidGenerator.GenerateOrderID(),
 		os.uuidGenerator.GenerateTrackingID(),
-		order,
 		restaurant)
 
 	if err != nil {
@@ -75,7 +70,7 @@ func (os *OrderService) CreateOrder(ctx context.Context, cmd *dto.CreateOrderCom
 	return mapper.MapToOrderResponseDto(order), nil
 }
 
-func (os *OrderService) TrackOrder(ctx context.Context, trackingId string) (*dto.TrackOrderResponse, error) {
+func (os *OrderServiceImpl) TrackOrder(ctx context.Context, trackingId string) (*dto.TrackOrderResponse, error) {
 	order, err := os.orderRepository.FindByTrackingId(ctx, trackingId)
 
 	if err != nil {

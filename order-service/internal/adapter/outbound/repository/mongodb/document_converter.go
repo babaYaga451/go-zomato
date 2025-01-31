@@ -54,9 +54,10 @@ func ToRestaurantDomainEntity(restaurantDocument *RestaurantDocument) *domain.Re
 }
 
 func toProducts(productDocument []*ProductDocument) []*domain.Product {
-	var products []*domain.Product
-	for _, product := range productDocument {
-		products = append(products, domain.NewProductWithNameAndPrice(product.ProductID, product.Name, valueObject.NewMoney(product.Price)))
+	products := make([]*domain.Product, len(productDocument))
+	for i := range productDocument {
+		product := productDocument[i]
+		products[i] = domain.NewProductWithNameAndPrice(product.ProductID, product.Name, valueObject.NewMoney(product.Price))
 	}
 	return products
 }
@@ -70,16 +71,17 @@ func toOrderAddressDocument(address *valueobject.Address) *OrderAddressDocument 
 }
 
 func toOrderItemsDocument(orderItem []*domain.OrderItem) []*OrderItemDocument {
-	var items []*OrderItemDocument
-	for _, item := range orderItem {
-		items = append(items, &OrderItemDocument{
+	items := make([]*OrderItemDocument, len(orderItem))
+	for i := range orderItem {
+		item := orderItem[i]
+		items[i] = &OrderItemDocument{
 			OrderID:     item.GetOrderID(),
 			OrderItemId: item.GetOrderItemID(),
 			Quantity:    item.GetQuantity(),
 			Subtotal:    item.GetSubTotal().GetAmount(),
 			Price:       item.GetPrice().GetAmount(),
 			Product:     toProductDocument(item.GetProduct()),
-		})
+		}
 	}
 	return items
 }
@@ -93,14 +95,21 @@ func toProductDocument(product *domain.Product) *ProductDocument {
 }
 
 func toOrderItems(orderItemDocument []*OrderItemDocument) []*domain.OrderItem {
-	var orderItems []*domain.OrderItem
-	for _, item := range orderItemDocument {
-		orderItems = append(orderItems, domain.NewOrderItem(
-			domain.NewProductWithNameAndPrice(item.Product.ProductID, item.Product.Name, valueObject.NewMoney(item.Product.Price)),
+	orderItems := make([]*domain.OrderItem, len(orderItemDocument))
+	for i := range orderItemDocument {
+		item := orderItemDocument[i]
+		productId := item.Product.ProductID
+		productName := item.Product.Name
+		productPrice := valueObject.NewMoney(item.Product.Price)
+		product := domain.NewProductWithNameAndPrice(productId, productName, productPrice)
+		orderItemPrice := valueObject.NewMoney(item.Price)
+		orderItemSubtotal := valueObject.NewMoney(item.Subtotal)
+		orderItems[i] = domain.NewOrderItem(
+			product,
 			item.Quantity,
-			valueObject.NewMoney(item.Price),
-			valueObject.NewMoney(item.Subtotal),
-		))
+			orderItemPrice,
+			orderItemSubtotal,
+		)
 	}
 	return orderItems
 }

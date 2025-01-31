@@ -6,16 +6,16 @@ import (
 	"github.com/babaYaga451/go-zomato/common/json"
 	"github.com/babaYaga451/go-zomato/common/log"
 	"github.com/babaYaga451/go-zomato/order-service/internal/adapter/inbound/http/dto"
-	"github.com/babaYaga451/go-zomato/order-service/internal/application/service"
+	"github.com/babaYaga451/go-zomato/order-service/internal/application/port"
 	"github.com/go-chi/chi/v5"
 )
 
 type OrderCommandHandler struct {
-	orderService *service.OrderService
+	orderService port.OrderService
 	logger       log.Logger
 }
 
-func NewOrderCommandHandler(orderService *service.OrderService, logger log.Logger) *OrderCommandHandler {
+func NewOrderCommandHandler(orderService port.OrderService, logger log.Logger) *OrderCommandHandler {
 	return &OrderCommandHandler{
 		orderService: orderService,
 		logger:       logger,

@@ -70,7 +70,7 @@ func (o *Order) SetTrackingID(trackingID string) {
 	o.trackingID = trackingID
 }
 
-func (o *Order) CreateNewOrder(orderId, trackingId string, order *Order, restaurant *Restaurant) error {
+func (o *Order) CreateNewOrder(orderId, trackingId string, restaurant *Restaurant) error {
 	if err := o.ensureValidIdAndStatus(); err != nil {
 		return err
 	}
