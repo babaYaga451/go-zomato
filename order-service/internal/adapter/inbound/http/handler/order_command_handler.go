@@ -38,7 +38,7 @@ func (h *OrderCommandHandler) CreateOrderHandler(w http.ResponseWriter, r *http.
 		h.internalServerError(w, r, err)
 		return
 	}
-	json.WriteJSON(w, http.StatusOK, response)
+	json.WriteJSON(w, http.StatusCreated, response)
 }
 
 func (h *OrderCommandHandler) TrackOrderHandler(w http.ResponseWriter, r *http.Request) {

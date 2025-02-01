@@ -35,7 +35,7 @@ func (rtr *Router) SetUpRouter() http.Handler {
 
 	r.Use(middleware.Timeout(60 * time.Second))
 
-	r.Route("/v1", func(r chi.Router) {
+	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/orders", func(r chi.Router) {
 			r.Post("/", rtr.orderCommandHandler.CreateOrderHandler)
 			r.Get("/{trackingId}", rtr.orderCommandHandler.TrackOrderHandler)

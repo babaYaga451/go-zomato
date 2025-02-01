@@ -2,8 +2,10 @@ package mongodb
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/babaYaga451/go-zomato/order-service/internal/domain"
+	"github.com/babaYaga451/go-zomato/order-service/internal/domain/event"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -22,7 +24,11 @@ func NewOrderRepository(db *mongo.Client, dbName string) *OrderRepository {
 	}
 }
 
-func (or *OrderRepository) SaveOrderAndInitiatePaymentTx(ctx context.Context, order *domain.Order) error {
+func (or *OrderRepository) SaveOrderAndInitiatePaymentTx(
+	ctx context.Context,
+	order *domain.Order,
+	orderPaymentEvent *event.OrderPaymentEvent) error {
+
 	return withTx(or.db, ctx, func(sc mongo.SessionContext) error {
 		orderDocument := ToOrderDocument(order)
 		_, err := or.orderCollection.InsertOne(sc, orderDocument)
@@ -30,7 +36,12 @@ func (or *OrderRepository) SaveOrderAndInitiatePaymentTx(ctx context.Context, or
 			return err
 		}
 
-		orderPaymentOutboxPayload := ToOrderPaymnetOutboxPayload(order)
+		payload, err := json.Marshal(orderPaymentEvent)
+		if err != nil {
+			return err
+		}
+
+		orderPaymentOutboxPayload := ToOrderPaymnetOutboxPayload(string(payload), order.GetID())
 		_, err = or.orderPaymentOutboxCollection.InsertOne(sc, orderPaymentOutboxPayload)
 		if err != nil {
 			return err

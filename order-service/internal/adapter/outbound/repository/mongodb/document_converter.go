@@ -36,14 +36,14 @@ func ToOrderDomainEntity(orderDocument *OrderDocument) *domain.Order {
 		Build()
 }
 
-func ToOrderPaymnetOutboxPayload(order *domain.Order) *OrderPaymnetOutboxPayload {
+func ToOrderPaymnetOutboxPayload(payload, orderID string) *OrderPaymnetOutboxPayload {
 	return &OrderPaymnetOutboxPayload{
 		Id:                 uuid.New().String(),
-		CustomerID:         order.GetCustomerID(),
-		OrderID:            order.GetID(),
-		Price:              order.GetPrice().GetAmount(),
+		OrderID:            orderID,
+		Payload:            payload,
+		OutboxStatus:       "STARTED",
+		ProcessingAttempts: 0,
 		CreatedAt:          time.Now(),
-		PaymentOrderStatus: string(order.GetOrderStatus()),
 	}
 }
 

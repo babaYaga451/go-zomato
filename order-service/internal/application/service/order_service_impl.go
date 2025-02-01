@@ -34,7 +34,6 @@ func NewOrderService(orderRepository port.OrderRepository,
 }
 
 func (os *OrderServiceImpl) CreateOrder(ctx context.Context, cmd *dto.CreateOrderCommand) (*dto.CreateOrderResponse, error) {
-	order := mapper.MapToDomainOrderEntity(cmd)
 	_, err := os.customerRepository.FindCustomer(ctx, cmd.CustomerID)
 
 	if err != nil {
@@ -42,17 +41,23 @@ func (os *OrderServiceImpl) CreateOrder(ctx context.Context, cmd *dto.CreateOrde
 		return nil, err
 	}
 
-	productIds := make([]string, 0, len(cmd.Items))
+	productIds := make([]string, len(cmd.Items))
 	for i, item := range cmd.Items {
 		productIds[i] = item.ProductId
 	}
-
 	restaurant, err := os.restaurantRepository.FindRestaurantByProducts(ctx, cmd.RestaurantID, productIds)
 	if err != nil {
+		os.logger.Warn("Restaurant not found with id: ", cmd.RestaurantID)
 		return nil, err
 	}
 
-	err = order.CreateNewOrder(
+	order := mapper.MapToDomainOrderEntity(cmd)
+	order.SetOrderProductInformation(restaurant)
+	if validationErr := order.ValidateOrderItemsPrice(); validationErr != nil {
+		return nil, validationErr
+	}
+
+	newOrder, orderPaymentEvent, err := order.CreateNewOrder(
 		os.uuidGenerator.GenerateOrderID(),
 		os.uuidGenerator.GenerateTrackingID(),
 		restaurant)
@@ -61,13 +66,18 @@ func (os *OrderServiceImpl) CreateOrder(ctx context.Context, cmd *dto.CreateOrde
 		return nil, err
 	}
 
-	if err := os.orderRepository.SaveOrderAndInitiatePaymentTx(ctx, order); err != nil {
+	err = os.orderRepository.SaveOrderAndInitiatePaymentTx(
+		ctx,
+		newOrder,
+		orderPaymentEvent)
+
+	if err != nil {
 		os.logger.Error("Error in saving order!")
 		return nil, errors.NewOrderDomainException("Error in saving order!")
 	}
 
 	os.logger.Info("Order created with id: " + order.GetID())
-	return mapper.MapToOrderResponseDto(order), nil
+	return mapper.MapToOrderResponseDto(newOrder), nil
 }
 
 func (os *OrderServiceImpl) TrackOrder(ctx context.Context, trackingId string) (*dto.TrackOrderResponse, error) {

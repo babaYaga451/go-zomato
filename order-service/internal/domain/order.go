@@ -2,9 +2,11 @@ package domain
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/babaYaga451/go-zomato/common/common-domain/valueObject"
 	"github.com/babaYaga451/go-zomato/order-service/internal/domain/errors"
+	"github.com/babaYaga451/go-zomato/order-service/internal/domain/event"
 	valueobject "github.com/babaYaga451/go-zomato/order-service/internal/domain/valueObject"
 )
 
@@ -70,30 +72,40 @@ func (o *Order) SetTrackingID(trackingID string) {
 	o.trackingID = trackingID
 }
 
-func (o *Order) CreateNewOrder(orderId, trackingId string, restaurant *Restaurant) error {
+func (o *Order) CreateNewOrder(orderId, trackingId string, restaurant *Restaurant) (*Order, *event.OrderPaymentEvent, error) {
 	if err := o.ensureValidIdAndStatus(); err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	if err := o.validateTotalPrice(); err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	if err := o.validateRestaurant(restaurant); err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	if err := o.validateOrderItemsPrice(); err != nil {
-		return err
+	newOrder := &Order{
+		id:              orderId,
+		customerID:      o.customerID,
+		restaurantID:    o.restaurantID,
+		deliveryAddress: o.deliveryAddress,
+		price:           o.price,
+		items:           o.items,
+		trackingID:      trackingId,
+		orderStatus:     "PENDING",
+		failureMessages: nil,
 	}
+	newOrder.intializeOrderItems()
 
-	o.id = orderId
-	o.trackingID = trackingId
-	o.orderStatus = "PENDING"
-	o.intializeOrderItems()
-	o.setOrderProductInformation(restaurant)
-
-	return nil
+	return newOrder,
+		&event.OrderPaymentEvent{
+			OrderID:       newOrder.id,
+			CustomerID:    newOrder.customerID,
+			Price:         newOrder.price.GetAmount(),
+			PaymentStatus: "PENDING",
+			CreatedAt:     time.Now(),
+		}, nil
 }
 
 func (o *Order) ensureValidIdAndStatus() error {
@@ -103,16 +115,16 @@ func (o *Order) ensureValidIdAndStatus() error {
 	return nil
 }
 
-func (o *Order) validateOrderItemsPrice() error {
-	var orderItemTotalPrice = valueObject.NewMoney(0)
+func (o *Order) ValidateOrderItemsPrice() error {
+	var total float64 = 0
 	for _, item := range o.items {
 		if item.IsPriceValid() {
-			orderItemTotalPrice = orderItemTotalPrice.Add(item.GetSubTotal())
+			total += item.GetSubTotal().GetAmount()
 		}
 	}
 
-	if !o.price.Equals(orderItemTotalPrice) {
-		errMssg := fmt.Sprintf("total price %.2f is not equal to order items total price %.2f", o.price.GetAmount(), orderItemTotalPrice.GetAmount())
+	if o.price.GetAmount() != total {
+		errMssg := fmt.Sprintf("total price %.2f is not equal to order items total price %.2f", o.price.GetAmount(), total)
 		return errors.NewOrderDomainException(errMssg)
 	}
 	return nil
@@ -140,7 +152,7 @@ func (o *Order) validateRestaurant(restaurant *Restaurant) error {
 	return nil
 }
 
-func (o *Order) setOrderProductInformation(restaurant *Restaurant) {
+func (o *Order) SetOrderProductInformation(restaurant *Restaurant) {
 	productMap := make(map[string]*Product)
 	for _, product := range restaurant.GetProducts() {
 		productMap[product.GetID()] = product
@@ -150,7 +162,7 @@ func (o *Order) setOrderProductInformation(restaurant *Restaurant) {
 		productId := item.GetProductId()
 		product, exists := productMap[productId]
 		if exists {
-			item.SetProductInformation(product.name, product.price)
+			item.SetProductInformation(product.GetName(), product.GetPrice())
 		}
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/babaYaga451/go-zomato/order-service/internal/domain"
+	"github.com/babaYaga451/go-zomato/order-service/internal/domain/event"
 )
 
 type CustomerRepository interface {
@@ -15,6 +16,6 @@ type RestaurantRepository interface {
 }
 
 type OrderRepository interface {
-	SaveOrderAndInitiatePaymentTx(ctx context.Context, order *domain.Order) error
+	SaveOrderAndInitiatePaymentTx(ctx context.Context, order *domain.Order, orderPaymentEvent *event.OrderPaymentEvent) error
 	FindByTrackingId(ctx context.Context, orderId string) (*domain.Order, error)
 }

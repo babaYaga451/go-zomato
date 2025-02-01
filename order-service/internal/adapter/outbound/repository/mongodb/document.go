@@ -18,11 +18,11 @@ type OrderDocument struct {
 
 type OrderPaymnetOutboxPayload struct {
 	Id                 string    `bson:"_id,omitempty"`
-	CustomerID         string    `bson:"customer_id"`
+	Payload            string    `bson:"payload"`
+	OutboxStatus       string    `bson:"outbox_status"`
 	OrderID            string    `bson:"order_id"`
-	Price              float64   `bson:"price"`
 	CreatedAt          time.Time `bson:"created_at"`
-	PaymentOrderStatus string    `bson:"payment_order_status"`
+	ProcessingAttempts int       `bson:"processing_attempts"`
 }
 
 type RestaurantDocument struct {
