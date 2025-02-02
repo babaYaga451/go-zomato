@@ -28,13 +28,7 @@ func (r *RestaurantRepository) FindRestaurantByProducts(ctx context.Context,
 		"_id": restaurantID,
 	}
 	if len(productIds) > 0 {
-		criteria := bson.A{}
-		for _, productId := range productIds {
-			criteria = append(criteria, bson.M{
-				"$elemMatch": bson.M{"_id": productId},
-			})
-		}
-		filter["products"] = bson.M{"$all": criteria}
+		filter["products._id"] = bson.M{"$all": productIds}
 	}
 	err := r.restaurantCollection.FindOne(ctx, filter).Decode(&restaurantDocument)
 	if err != nil {
