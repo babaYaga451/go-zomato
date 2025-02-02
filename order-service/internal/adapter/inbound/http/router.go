@@ -17,7 +17,10 @@ type Router struct {
 	logger              log.Logger
 }
 
-func NewRouterWithConfig(orderCommandHandler *handler.OrderCommandHandler, config *config.HTTP, logger log.Logger) *Router {
+func NewRouterWithConfig(
+	orderCommandHandler *handler.OrderCommandHandler,
+	config *config.HTTP,
+	logger log.Logger) *Router {
 	return &Router{
 		orderCommandHandler: orderCommandHandler,
 		config:              config,
@@ -33,7 +36,7 @@ func (rtr *Router) SetUpRouter() http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Use(middleware.Timeout(60 * time.Second))
+	r.Use(middleware.Timeout(rtr.config.RequestTimeout))
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/orders", func(r chi.Router) {
@@ -48,7 +51,7 @@ func (rtr *Router) Run(mux http.Handler) error {
 	server := http.Server{
 		Handler:      mux,
 		Addr:         rtr.config.Port,
-		WriteTimeout: 15 * time.Second,
+		WriteTimeout: rtr.config.WriteTimeout,
 		ReadTimeout:  15 * time.Second,
 		IdleTimeout:  time.Minute,
 	}

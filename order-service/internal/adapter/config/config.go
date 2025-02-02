@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"time"
 
 	"github.com/babaYaga451/go-zomato/order-service/internal/adapter/config/env"
 	"github.com/joho/godotenv"
@@ -25,7 +26,9 @@ type (
 	}
 
 	HTTP struct {
-		Port string
+		Port           string
+		RequestTimeout time.Duration
+		WriteTimeout   time.Duration
 	}
 )
 
@@ -47,7 +50,9 @@ func New() (*Container, error) {
 	}
 
 	http := &HTTP{
-		Port: env.GetString("HTTP_PORT", ":8080"),
+		Port:           env.GetString("HTTP_PORT", ":8080"),
+		RequestTimeout: time.Duration(env.GetInt("HTTP_REQUEST_TIMEOUT", 300)) * time.Second,
+		WriteTimeout:   time.Duration(env.GetInt("HTTP_WRITE_TIMEOUT", 300)) * time.Second,
 	}
 
 	return &Container{
